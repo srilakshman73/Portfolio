@@ -1,0 +1,28 @@
+# Environment variables
+.env
+.env.local
+.env.development
+.env.test
+.env.production
+
+# Python cache & virtualenvs
+__pycache__/
+*.py[cod]
+*$py.class
+venv/
+.venv/
+env/
+.env/
+
+# Dynamic data stores (local persistence)
+messages.json
+visitor_count.json
+
+# IDE configurations
+.vscode/
+.idea/
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.swp
