@@ -88,6 +88,15 @@ function runBootLoader() {
 
     if (!logsContainer) return;
 
+    // Fast-path bypass if we are on a subpage or if the site has already loaded once in this session
+    if (window.location.pathname !== '/' || sessionStorage.getItem('site_booted') === 'true') {
+        if (loader) {
+            loader.style.display = 'none';
+        }
+        initGSAPAnimations();
+        return;
+    }
+
     const bootMessages = [
         "Initializing core environment...",
         "Reading hardware architecture: ESP32/Arduino...",
@@ -115,6 +124,9 @@ function runBootLoader() {
             statusText.innerText = "System Ready.";
             percentageText.innerText = "100%";
             loadingBar.style.width = "100%";
+            
+            // Mark session as booted to bypass loading animations on subsequent views
+            sessionStorage.setItem('site_booted', 'true');
             
             setTimeout(() => {
                 playSound('boot');
