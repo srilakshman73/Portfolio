@@ -192,7 +192,7 @@ RESUME_CONTEXT = {
         "email": "srilakshman73@gmail.com",
         "phone": "+91 9443647190",
         "github": "https://github.com/srilakshman73",
-        "linkedin": "https://linkedin.com/in/srilakshman73"
+        "linkedin": "https://www.linkedin.com/in/sri-lakshman-m-l-5480b8243/"
     }
 }
 
