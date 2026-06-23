@@ -488,58 +488,15 @@ const CASE_STUDIES = {
 };
 
 function openCaseStudy(key) {
-    const data = CASE_STUDIES[key];
-    if (!data) return;
-
-    const modal = document.getElementById('case-study-modal');
-    const injected = document.getElementById('case-study-injected');
-
-    injected.innerHTML = `
-        <h2 class="text-3xl font-extrabold text-white mb-2">${data.title}</h2>
-        <span class="px-2.5 py-1 text-xs font-mono rounded bg-cyan-500/10 border border-cyan-500/20 text-cyan-400">${data.tech}</span>
-        <p class="text-slate-300 font-mono text-sm mt-4 font-bold">${data.subtitle}</p>
-        
-        <div class="mt-6 space-y-6 text-sm text-slate-400">
-            <div>
-                <h4 class="font-bold text-white mb-1.5 font-mono text-xs text-cyan-500 uppercase tracking-widest">// Project Abstract</h4>
-                <p class="leading-relaxed">${data.details}</p>
-            </div>
-            
-            <div>
-                <h4 class="font-bold text-white mb-1.5 font-mono text-xs text-purple-500 uppercase tracking-widest">// System Architecture</h4>
-                <div class="p-4 bg-slate-950/80 border border-white/5 rounded-xl text-xs font-mono text-slate-300 leading-relaxed">
-                    ${data.architecture}
-                </div>
-            </div>
-            
-            <div>
-                <h4 class="font-bold text-white mb-1.5 font-mono text-xs text-pink-500 uppercase tracking-widest">// Code Routine Excerpt</h4>
-                <pre class="p-4 bg-slate-950/80 border border-white/5 rounded-xl overflow-x-auto text-[11px] font-mono text-emerald-400"><code>${data.codeSnippet}</code></pre>
-            </div>
-        </div>
-        
-        <div class="mt-8 flex gap-4">
-            <a href="https://github.com/srilakshman73" target="_blank" class="px-5 py-2.5 rounded-full bg-gradient-to-r from-cyan-500 to-purple-600 text-white font-semibold text-xs flex items-center space-x-1.5 shadow-md hover:shadow-neon-cyan transition-all duration-300">
-                <i class="fa-brands fa-github text-sm"></i>
-                <span>Get Source Code</span>
-            </a>
-            <button onclick="closeCaseStudy()" class="px-5 py-2.5 rounded-full border border-white/10 bg-white/5 text-white font-semibold text-xs hover:bg-white/10 transition-colors duration-300">
-                <span>Close Case</span>
-            </button>
-        </div>
-    `;
-
-    modal.classList.remove('hidden');
-    setTimeout(() => {
-        modal.classList.remove('opacity-0');
-        modal.querySelector('#case-study-content-container').classList.remove('translate-y-12');
-    }, 50);
+    window.location.href = '/project/' + key;
 }
 
 function closeCaseStudy() {
     const modal = document.getElementById('case-study-modal');
+    if (!modal) return;
     modal.classList.add('opacity-0');
-    modal.querySelector('#case-study-content-container').classList.add('translate-y-12');
+    const content = modal.querySelector('#case-study-content-container');
+    if (content) content.classList.add('translate-y-12');
     setTimeout(() => {
         modal.classList.add('hidden');
     }, 300);

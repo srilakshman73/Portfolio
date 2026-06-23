@@ -277,6 +277,305 @@ def download_resume():
         mimetype='application/pdf'
     )
 
+PROJECT_CASE_STUDIES = {
+    "radiation": {
+        "title": "AI-Based Radiation Monitoring System",
+        "tech": "ESP32 + ANN + IoT",
+        "category": "IoT & Robotics",
+        "banner": "assets/radiations.png",
+        "subtitle": "Hardware-efficient local neural network classification for real-time radiation anomaly detection.",
+        "abstract": "This project addresses the critical safety challenge of monitoring environmental radiation levels in industrial zones. Standard monitors push raw values to cloud systems, which suffer from high latency and potential communication breakdown during network outages. To overcome this, we developed a local radiation monitor using an ESP32 board that processes radiation pulses directly using an on-board artificial neural network (ANN). The system performs local edge classification to identify abnormal levels instantly, triggers physical buzzers, and queues messages to be sent to a Flask-based portal when network connectivity is solid.",
+        "architecture": "Geiger Counter Tube (J305/M4011) -> Pulse Interrupt Handler -> ESP32 Edge Processor -> Local Neural Network (Multi-Layer Perceptron) -> Local Piezo Buzzer & Indicator -> MQTT Client -> Web Portal Database -> Gmail API Warnings.",
+        "code": """// ESP32 Hardware Interrupt and Local Inference
+#define PULSE_PIN 12
+volatile unsigned long pulse_count = 0;
+void IRAM_ATTR countPulse() {
+    pulse_count++;
+}
+
+void setup() {
+    pinMode(PULSE_PIN, INPUT_PULLUP);
+    attachInterrupt(digitalPinToInterrupt(PULSE_PIN), countPulse, FALLING);
+}
+
+void loop() {
+    // Run edge inference every 10 seconds
+    static unsigned long last_check = 0;
+    if (millis() - last_check > 10000) {
+        float cpm = pulse_count * 6.0; // Convert to CPM
+        pulse_count = 0;
+        last_check = millis();
+        
+        // Evaluate input via simple 3-layer feedforward weights
+        float output = runLocalANN(cpm);
+        if (output > 0.8) {
+            digitalWrite(BUZZER_PIN, HIGH); // Instant Local Alarm
+        }
+    }
+}""",
+        "challenges": """1. **Sensor Noise Filtration**: The Geiger tube produced random electromagnetic spike pulses which falsely inflated CPM readings. We solved this by implementing a software-based debounce filter and calculating a moving average over a 30-second window.
+
+2. **Resource Constraints**: Running deep networks on ESP32 is memory intensive. We solved this by training a minimal 3-layer neural network in Python and exporting only the weights and biases as static floats, bypassing heavy runtime libraries."""
+    },
+    "diabetes": {
+        "title": "Diabetes Prediction ML Model",
+        "tech": "Python + Scikit-Learn + Pandas",
+        "category": "AI & ML",
+        "banner": "assets/project_diabetes.png",
+        "subtitle": "Predictive diagnostics pipeline using optimized classification algorithms on clinical databases.",
+        "abstract": "Early diagnosis of chronic conditions like diabetes is crucial for preventing serious long-term health complications. This project details a robust machine learning classification pipeline developed to predict patient diabetic onset using demographic and clinical telemetry. By training multiple classifier systems, optimizing features via principal component analysis, and adjusting precision-recall ratios, we achieved a highly reliable classification engine integrated with an API web server.",
+        "architecture": "Patient Raw Records -> Pandas Data Cleaning -> Feature Imputation -> MinMaxScaler Standardization -> PCA Dimensionality Reduction -> Random Forest Classifier (GridSearchCV Tuned) -> Serialized Pickle -> Flask API Server.",
+        "code": """# Data Preprocessing and Random Forest Pipeline
+import pandas as pd
+from sklearn.model_selection import train_test_split
+from sklearn.preprocessing import StandardScaler
+from sklearn.ensemble import RandomForestClassifier
+
+# Load PIMA Diabetes database
+df = pd.read_csv('diabetes.csv')
+X = df.drop('Outcome', axis=1)
+y = df['Outcome']
+
+# Preprocess and split
+scaler = StandardScaler()
+X_scaled = scaler.fit_transform(X)
+X_train, X_test, y_train, y_test = train_test_split(X_scaled, y, test_size=0.2, random_state=42)
+
+# Fit model with optimized parameters
+rf_model = RandomForestClassifier(n_estimators=150, max_depth=8, random_state=42)
+rf_model.fit(X_train, y_train)
+accuracy = rf_model.score(X_test, y_test)
+print(f"Diagnostics Pipeline Accuracy: {accuracy * 100:.2f}%")""",
+        "challenges": """1. **Data Imbalance and Zero Values**: The clinical dataset contained numerous physically impossible 'zero' values in columns like insulin concentration and blood pressure. We resolved this by performing K-Nearest Neighbors (KNN) feature imputation instead of simple mean replacements.
+
+2. **High False Negatives**: A false negative in diagnostics is extremely dangerous. We tackled this by lowering the classification decision threshold to 0.35 to prioritize recall, ensuring potential cases are not missed."""
+    },
+    "car": {
+        "title": "Mini Autonomous Vehicle",
+        "tech": "ESP32 + Sensors + L298N",
+        "category": "IoT & Robotics",
+        "banner": "assets/project_car.png",
+        "subtitle": "Real-time ultrasonic range sensing and responsive obstacle avoidance navigation loops.",
+        "abstract": "Autonomous navigation is a cornerstone of modern robotics. This project describes the design and construction of an obstacle-avoiding autonomous vehicle. Powered by an ESP32 microcontroller, the vehicle scans its immediate environment using an array of ultrasonic and infrared sensors, calculates collision metrics, and manages steering and propulsion using an L298N dual H-bridge motor driver. It features dynamic path redirection and an Android Bluetooth override interface.",
+        "architecture": "Ultrasonic Sensor Grid -> Trigger Pulse -> Echo Pin Interrupt -> Distance Matrix -> Path Planner Algorithm -> L298N Motor Driver Control -> DC Gear Motors.",
+        "code": """// Avoidance Loop and Servo Mapping
+#define TRIG_PIN 5
+#define ECHO_PIN 18
+#define LEFT_MOTOR_SPEED_PIN 25
+#define RIGHT_MOTOR_SPEED_PIN 26
+
+long readDistance() {
+    digitalWrite(TRIG_PIN, LOW);
+    delayMicroseconds(2);
+    digitalWrite(TRIG_PIN, HIGH);
+    delayMicroseconds(10);
+    digitalWrite(TRIG_PIN, LOW);
+    
+    long duration = pulseIn(ECHO_PIN, HIGH, 30000); // 30ms timeout
+    return duration * 0.034 / 2; // Distance in cm
+}
+
+void avoidObstacle() {
+    stopMotors();
+    servo.write(45); // Scan left
+    delay(300);
+    long left_dist = readDistance();
+    
+    servo.write(135); // Scan right
+    delay(300);
+    long right_dist = readDistance();
+    
+    servo.write(90); // Re-center
+    if (left_dist > right_dist) {
+        turnLeft();
+    } else {
+        turnRight();
+    }
+}""",
+        "challenges": """1. **Ultrasonic Reflection Noise**: Soft surfaces or angled walls produced acoustic reflections, leading to incorrect distance readings. We solved this by using a median filter of 5 consecutive scans and integrating secondary infrared sensors to double-check close-range targets.
+
+2. **Power Management**: Sudden motor surges caused voltage drops that reset the ESP32 board. We resolved this by isolating the microcontroller logic power supply from the motor drivers using optocouplers and separate battery packs."""
+    },
+    "churn": {
+        "title": "Customer Churn Prediction",
+        "tech": "Python + Keras + ANN",
+        "category": "AI & ML",
+        "banner": "assets/project_diabetes.png",
+        "subtitle": "Deep learning neural network built to predict customer attrition based on behavior metrics.",
+        "abstract": "Retaining customers is key to sustainable business growth. This project focuses on building an Artificial Neural Network (ANN) using Keras and TensorFlow to predict customer churn. The network analyzes demographic, billing, and interaction metrics to forecast the probability of customer attrition. This enables proactive marketing teams to offer targeted retention incentives before customers cancel their subscriptions.",
+        "architecture": "Customer Activity Data -> One-Hot Categorical Encoder -> Standardized Input Values -> Keras Dense Layers -> Dropout Regularization -> Sigmoid Output Layer -> Churn Probability.",
+        "code": """# Neural Network Configuration with Keras
+from tensorflow.keras.models import Sequential
+from tensorflow.keras.layers import Dense, Dropout, BatchNormalization
+
+model = Sequential([
+    Dense(64, activation='relu', input_shape=(X_train.shape[1],)),
+    BatchNormalization(),
+    Dropout(0.3),
+    Dense(32, activation='relu'),
+    BatchNormalization(),
+    Dropout(0.2),
+    Dense(1, activation='sigmoid') # Binary prediction node
+])
+
+model.compile(
+    optimizer='adam',
+    loss='binary_crossentropy',
+    metrics=['accuracy']
+)
+
+history = model.fit(
+    X_train, y_train,
+    validation_split=0.2,
+    epochs=50,
+    batch_size=32
+)""",
+        "challenges": """1. **High Overfitting**: The model quickly achieved high training accuracy but performed poorly on validation splits. We resolved this by introducing BatchNormalization layers to stabilize inputs and adjusting Dropout rates to 0.3.
+
+2. **Categorical Features**: Customer datasets contain text parameters like country and credit levels. We converted these using One-Hot encoding and normalized the results so the neural net weights would converge efficiently."""
+    },
+    "chatbot": {
+        "title": "NLP AI Chatbot Engine",
+        "tech": "Python + NLP",
+        "category": "AI & ML",
+        "banner": "assets/project_diabetes.png",
+        "subtitle": "Lightweight conversational engine utilizing tokenization and keyword mapping.",
+        "abstract": "Automating customer interactions requires fast and contextually relevant conversational agents. This project outlines the creation of an interactive chatbot built entirely in Python using Natural Language Processing (NLP) libraries. The engine maps input text queries through pipeline stages (tokenization, lemmatization, and stop-word filtering) to match user intent index vectors and return immediate, styled responses.",
+        "architecture": "User Input Text -> Regex Tokenizer -> Word Lemmatization -> Pattern Vectorizer -> Bag of Words Model -> Classification Score Map -> Formatted Response output.",
+        "code": """# Tokenization & Lemmatization Pipeline
+import nltk
+from nltk.stem import WordNetLemmatizer
+lemmatizer = WordNetLemmatizer()
+
+def clean_up_sentence(sentence):
+    # Split sentence into words
+    sentence_words = nltk.word_tokenize(sentence)
+    # Lemmatize and lowercase each word
+    sentence_words = [lemmatizer.lemmatize(word.lower()) for word in sentence_words]
+    return sentence_words
+
+def bag_of_words(sentence, words):
+    sentence_words = clean_up_sentence(sentence)
+    bag = [0] * len(words)  
+    for s in sentence_words:
+        for i, w in enumerate(words):
+            if w == s: 
+                bag[i] = 1
+    return np.array(bag)""",
+        "challenges": """1. **Out-of-Vocabulary Queries**: User inputs with slang or spelling errors caused search patterns to fail. We resolved this by integrating a fallback matching algorithm based on Levenshtein Edit Distance, pointing the engine to the nearest matched pattern.
+
+2. **Context Management**: Standard keyword mapping has no memory of previous sentences. We solved this by appending state tokens in user session states, allowing multi-turn conversations for specific flows like contact requests."""
+    },
+    "facerec": {
+        "title": "Real-Time Face Recognition",
+        "tech": "Python + OpenCV",
+        "category": "AI & ML",
+        "banner": "assets/project_diabetes.png",
+        "subtitle": "Computer vision model identifying facial structures and tracking records.",
+        "abstract": "Security and automated attendance systems require fast, secure, and non-intrusive verification methods. This project outlines a face recognition system that tracks faces in real-time using a standard USB webcam. The system isolates face regions using OpenCV Haar Cascades, extracts features, matches them against pre-registered user embeddings, and logs entries in a MySQL database.",
+        "architecture": "Video Camera Feed -> Frame Decimator -> Grayscale Converter -> Haar Cascade Classifier -> Face Landmark Encoder -> Euclidean Distance Matrix -> MySQL Logging Portal.",
+        "code": """# Video Processing and Classification Loop
+import cv2
+face_cascade = cv2.CascadeClassifier(cv2.data.haarcascades + 'haarcascade_frontalface_default.xml')
+cap = cv2.VideoCapture(0)
+
+while True:
+    ret, frame = cap.read()
+    if not ret: break
+    
+    gray = cv2.cvtColor(frame, cv2.COLOR_BGR2GRAY)
+    faces = face_cascade.detectMultiScale(gray, scaleFactor=1.2, minNeighbors=5, minSize=(30, 30))
+    
+    for (x, y, w, h) in faces:
+        cv2.rectangle(frame, (x, y), (x+w, y+h), (0, 242, 254), 2)
+        # Extract face region for classifier match
+        face_roi = gray[y:y+h, x:x+w]
+        
+    cv2.imshow('Real-time Face Tracker', frame)
+    if cv2.waitKey(1) & 0xFF == ord('q'): break
+cap.release()
+cv2.destroyAllWindows()""",
+        "challenges": """1. **Lighting Variations**: In low light or back-lit environments, the Haar Cascade failed to detect facial borders. We resolved this by implementing Contrast Limited Adaptive Histogram Equalization (CLAHE) on the input grayscale frames.
+
+2. **Processing Latency**: Real-time video processing is CPU intensive. We optimized execution by down-scaling the camera frame size by 50% before running face detection and mapping the result coordinates back onto the display window."""
+    },
+    "employeedb": {
+        "title": "Employee Management System",
+        "tech": "Java + MySQL CRUD",
+        "category": "Web & Software",
+        "banner": "assets/project_movie.png",
+        "subtitle": "Secure database administration desktop panel with transactional queries.",
+        "abstract": "Modern corporations require reliable and structured storage interfaces to manage employee records, organizational departments, and payroll details. This project highlights a Java Swing desktop application that integrates with a MySQL backend via Java Database Connectivity (JDBC). Featuring CRUD operations, search indices, and secure data access, the platform enables clean and robust database administration.",
+        "architecture": "Java Swing UI -> Event Listeners -> JDBC Driver Manager -> PreparedStatement Compiler -> SQL Transaction Engine -> MySQL Database Server.",
+        "code": """// PreparedStatement Compilation and Query Execution
+import java.sql.Connection;
+import java.sql.PreparedStatement;
+import java.sql.ResultSet;
+
+public class EmployeeDAO {
+    private Connection connection;
+    
+    public void searchEmployeeByDept(String deptName) {
+        String sql = "SELECT emp_id, first_name, salary FROM employees WHERE department = ? ORDER BY emp_id ASC";
+        try (PreparedStatement statement = connection.prepareStatement(sql)) {
+            statement.setString(1, deptName);
+            try (ResultSet resultSet = statement.executeQuery()) {
+                while (resultSet.next()) {
+                    System.out.println("ID: " + resultSet.getInt("emp_id") + 
+                                       ", Name: " + resultSet.getString("first_name"));
+                }
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+}""",
+        "challenges": """1. **SQL Injection Risks**: Initial dynamic string queries were highly vulnerable to malicious injections. We solved this by mandating Parameterized Queries through Java's PreparedStatement wrapper.
+
+2. **Connection Drops**: Leaving database connections open caused MySQL timeout errors. We resolved this by utilizing a JDBC connection pool and wrapping query scopes in try-with-resources blocks to guarantee resource closure."""
+    },
+    "bookmyshow": {
+        "title": "BookMyShow Clone",
+        "tech": "HTML + CSS + JS",
+        "category": "Web & Software",
+        "banner": "assets/project_movie.png",
+        "subtitle": "Responsive front-end portal featuring glassmorphism seat selection widgets.",
+        "abstract": "An intuitive, responsive seat reservation interface is key for movie ticketing websites. This project presents a front-end replica of a booking engine. Built using semantic HTML5, custom Tailwind CSS configurations, and vanilla JavaScript, it displays cinema hall seat maps, handles seat lock selections dynamically, computes real-time pricing cards, and includes success booking notifications.",
+        "architecture": "UI Interactive Seat Matrix -> DOM Event Delegator -> Session Storage State Manager -> Pricing Calculation Model -> Local Toast Notification Chime.",
+        "code": """// Dynamic Seat Grid Management
+const seatContainer = document.querySelector('.seat-grid-container');
+const countDisplay = document.getElementById('seat-selected-count');
+const priceDisplay = document.getElementById('total-price-indicator');
+
+seatContainer.addEventListener('click', (e) => {
+    if (e.target.classList.contains('seat') && !e.target.classList.contains('occupied')) {
+        e.target.classList.toggle('selected');
+        updateTicketSummary();
+    }
+});
+
+function updateTicketSummary() {
+    const selectedSeats = document.querySelectorAll('.seat-grid-container .seat.selected');
+    const count = selectedSeats.length;
+    const basePrice = 150; // Rupees per seat
+    
+    countDisplay.innerText = count;
+    priceDisplay.innerText = count * basePrice;
+}""",
+        "challenges": """1. **Grid Responsiveness**: Laying out a massive grid of 120 seats led to layout breakage on smaller mobile screens. We solved this by wrapping the grid in a CSS Flex wrapper with overflow scrolling, enabling zoom and swipe navigation.
+
+2. **State Preservation**: Page reloads reset the seat selection. We fixed this by serializing the selected seat indices into browser SessionStorage, restoring the selection grid on page reload."""
+    }
+}
+
+from flask import redirect, url_for
+
+@app.route('/project/<key>')
+def project_case_study(key):
+    if key in PROJECT_CASE_STUDIES:
+        return render_template('project_case_study.html', project=PROJECT_CASE_STUDIES[key], project_key=key)
+    return redirect(url_for('home'))
+
 @app.route('/')
 def home():
     visitor_count = increment_visitor_count()
