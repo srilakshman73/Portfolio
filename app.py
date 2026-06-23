@@ -3,7 +3,7 @@ import json
 import smtplib
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, send_from_directory
 
 # Load environment variables manually from .env if it exists
 def load_dotenv():
@@ -258,6 +258,24 @@ def generate_ai_response(query):
             f"highly skilled Software, AI/ML, and IoT Engineer. He is proficient in Python, Machine Learning, "
             f"and ESP32 systems, with 5 internships and a 8.1 CGPA. Ask me about his 'projects', 'skills', "
             f"'experience', or how to 'contact' him!")
+
+
+@app.route('/resume/view')
+def view_resume():
+    return send_from_directory(
+        os.path.join(app.root_path, 'static', 'assets'),
+        'sri_laksh_d.pdf',
+        mimetype='application/pdf'
+    )
+
+@app.route('/resume/download')
+def download_resume():
+    return send_from_directory(
+        os.path.join(app.root_path, 'static', 'assets'),
+        'sri_laksh_d.pdf',
+        as_attachment=True,
+        mimetype='application/pdf'
+    )
 
 @app.route('/')
 def home():
